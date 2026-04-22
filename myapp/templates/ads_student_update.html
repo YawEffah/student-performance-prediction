@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+
+{% block title %}Update Profile | EduPredict{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <header class="mb-10">
+        <div class="flex items-center gap-4 mb-2">
+            <div class="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-black text-xl shadow-sm border border-indigo-100">
+                {{ student.name|slice:":1" }}
+            </div>
+            <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Edit Student Profile</h1>
+        </div>
+        <p class="text-slate-500">Updating academic metrics and demographics for {{ student.name }} ({{ student.student_id }}).</p>
+    </header>
+
+    <div class="bg-white rounded-3xl p-8 md:p-10 shadow-sm border border-slate-100">
+        <form method="POST" class="space-y-8">
+            {% csrf_token %}
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {% for field in form %}
+                <div class="flex flex-col gap-2">
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.errors %}
+                        <p class="text-xs font-bold text-red-500 mt-1">{{ field.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="pt-6 flex flex-col md:flex-row gap-4">
+                <button type="submit" class="flex-1 bg-indigo-600 text-white py-4 rounded-2xl font-black hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-2">
+                    <i class="ph-bold ph-floppy-disk text-xl"></i>
+                    Sync Changes
+                </button>
+                <a href="{% url 'student_list' %}" class="flex-1 bg-slate-50 text-slate-500 py-4 rounded-2xl font-bold hover:bg-slate-100 transition-all flex items-center justify-center">
+                    Discard
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    input[type="text"], input[type="number"], input[type="email"], select, textarea {
+        width: 100%;
+        padding: 1rem;
+        border-radius: 1rem;
+        border: 1px solid #e2e8f0;
+        background: #f8fafc;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+    input:focus, select:focus, textarea:focus {
+        outline: none;
+        border-color: #6366f1;
+        background: #ffffff;
+        box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+    }
+</style>
+{% endblock %}

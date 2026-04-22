@@ -1,0 +1,82 @@
+<aside class="w-72 bg-indigo-950 text-slate-300 flex flex-col sticky top-0 h-screen shadow-2xl">
+    <!-- Branding -->
+    <div class="p-8 mb-4">
+        <div class="flex items-center gap-3 text-white">
+            <div class="bg-indigo-500/20 p-2 rounded-xl">
+                <i class="ph-bold ph-graduation-cap text-2xl text-indigo-400"></i>
+            </div>
+            <span class="text-xl font-extrabold tracking-tight">EduPredict</span>
+        </div>
+    </div>
+    
+    <!-- Navigation Links -->
+    <nav class="flex-1 px-4 space-y-1">
+        <p class="px-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2">Main Menu</p>
+        
+        <a href="{% url 'dashboard' %}" 
+           class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-white/5 hover:text-white group {% if request.resolver_match.url_name == 'admin_dashboard' or request.resolver_match.url_name == 'hod_dashboard' %}bg-indigo-600 text-white shadow-lg shadow-indigo-600/20{% endif %}">
+            <i class="ph-bold ph-layout text-xl"></i>
+            <span class="font-medium">Dashboard</span>
+        </a>
+
+        <a href="{% url 'student_list' %}" 
+           class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-white/5 hover:text-white group {% if request.resolver_match.url_name == 'student_list' %}bg-indigo-600 text-white shadow-lg shadow-indigo-600/20{% endif %}">
+            <i class="ph-bold ph-users text-xl"></i>
+            <span class="font-medium">Students</span>
+        </a>
+
+        {% if user.user_type == 'admin' %}
+        <p class="px-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 mt-6 mb-2">Administration</p>
+        <a href="{% url 'staff_list' %}" 
+           class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-white/5 hover:text-white group {% if request.resolver_match.url_name == 'staff_list' %}bg-indigo-600 text-white shadow-lg shadow-indigo-600/20{% endif %}">
+            <i class="ph-bold ph-user-gear text-xl"></i>
+            <span class="font-medium">Users</span>
+        </a>
+        <a href="{% url 'department_list' %}" 
+           class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-white/5 hover:text-white group {% if request.resolver_match.url_name == 'department_list' %}bg-indigo-600 text-white shadow-lg shadow-indigo-600/20{% endif %}">
+            <i class="ph-bold ph-buildings text-xl"></i>
+            <span class="font-medium">Departments</span>
+        </a>
+        {% endif %}
+
+        <p class="px-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 mt-6 mb-2">Academic Support</p>
+        <a href="{% url 'intervention_list' %}" 
+           class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-white/5 hover:text-white group {% if request.resolver_match.url_name == 'intervention_list' %}bg-indigo-600 text-white shadow-lg shadow-indigo-600/20{% endif %}">
+            <i class="ph-bold ph-hand-heart text-xl"></i>
+            <span class="font-medium">Interventions</span>
+        </a>
+
+    </nav>
+    
+    <!-- User Profile Section -->
+    <div class="p-6 mt-auto">
+        <div class="bg-white/5 rounded-2xl p-4 border border-white/5">
+            <div class="flex items-center gap-3">
+                <!-- Avatar -->
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-black shadow-lg shrink-0">
+                    {{ user.email|slice:":1"|upper }}
+                </div>
+                
+                <!-- Info -->
+                <div class="flex-1 min-w-0">
+                    <p class="text-[11px] font-black text-white truncate">{{ user.name|default:user.email }}</p>
+                    <p class="text-[9px] text-indigo-400 font-bold uppercase tracking-widest">{{ user.user_type }}</p>
+                </div>
+
+                <!-- Action Icons (Vertical Stack) -->
+                <div class="flex flex-col gap-1 shrink-0">
+                    <a href="{% url 'staff_profile' %}" 
+                       title="Settings"
+                       class="w-7 h-7 flex items-center justify-center rounded-lg bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white transition-all duration-200">
+                        <i class="ph-bold ph-gear text-xs"></i>
+                    </a>
+                    <a href="{% url 'logout' %}" 
+                       title="Logout"
+                       class="w-7 h-7 flex items-center justify-center rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition-all duration-200">
+                        <i class="ph-bold ph-sign-out text-xs"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</aside>

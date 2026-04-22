@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>HOD Department Report</title>
+    <style>
+        body { font-family: 'Helvetica', 'Arial', sans-serif; color: #333; }
+        .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #4f46e5; padding-bottom: 10px; }
+        .logo { font-size: 24px; font-weight: bold; color: #4f46e5; }
+        .report-info { display: flex; justify-content: space-between; margin-bottom: 20px; }
+        .section { margin-bottom: 30px; }
+        .section-title { font-size: 18px; font-weight: bold; border-left: 4px solid #4f46e5; padding-left: 10px; margin-bottom: 15px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background-color: #f8fafc; }
+        .stat-grid { display: flex; gap: 20px; margin-bottom: 20px; }
+        .stat-card { flex: 1; padding: 15px; background: #f1f5f9; border-radius: 8px; text-align: center; }
+        .stat-value { font-size: 20px; font-weight: bold; color: #4f46e5; }
+        .footer { text-align: center; font-size: 10px; color: #666; margin-top: 50px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">EduPredict</div>
+        <p>Departmental Performance Analysis Report</p>
+    </div>
+
+    <div class="report-info">
+        <div>
+            <strong>HOD:</strong> {{ name }}<br>
+            <strong>Department:</strong> {{ subject }}<br>
+            <strong>Report Date:</strong> {{ report_date }}
+        </div>
+        <div style="text-align: right;">
+            <img src="{{ qr }}" width="80">
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Overview</div>
+        <div class="stat-grid">
+            <div class="stat-card">
+                <div class="stat-value">{{ students_result_0.count|add:students_result_1.count|add:students_result_other.count }}</div>
+                <div>Total Students</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" style="color: #ef4444;">{{ students_result_0.count }}</div>
+                <div>At Risk</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" style="color: #10b981;">{{ students_result_1.count }}</div>
+                <div>Low Risk</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">At-Risk Students (Action Required)</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Attendance</th>
+                    <th>Study Hours</th>
+                    <th>Overall Score</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for student in students_result_0 %}
+                <tr>
+                    <td>{{ student.name }}</td>
+                    <td>{{ student.attendance_percentage }}%</td>
+                    <td>{{ student.study_hours }}h</td>
+                    <td>{{ student.overall_score }}%</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4">No students currently at high risk.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="footer">
+        &copy; 2026 EduPredict System. Generated automatically for academic intervention purposes.
+    </div>
+</body>
+</html>

@@ -1,0 +1,317 @@
+{% extends 'base.html' %}
+
+{% block title %}Student Registry | EduPredict{% endblock %}
+
+{% block content %}
+<header class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
+    <div>
+        <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Student Registry</h1>
+        <p class="text-slate-500 mt-1">Comprehensive overview of student demographics and predicted academic risks.</p>
+    </div>
+    <div class="flex items-center gap-3">
+        <button onclick="openEnrollmentModal()" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 text-white font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20">
+            <i class="ph-bold ph-plus"></i>
+            Enroll Student
+        </button>
+    </div>
+</header>
+<!-- Filters & Batch Actions -->
+<div class="bg-white p-4 rounded-3xl shadow-sm border border-slate-100 mb-8">
+    <div class="flex flex-col lg:flex-row items-center justify-between gap-6">
+        <form method="GET" action="" class="flex flex-col md:flex-row items-center gap-4 w-full lg:w-auto">
+            <!-- Search Bar -->
+            <div class="relative w-full md:w-80 group">
+                <button type="submit" class="absolute left-2 top-1 bottom-1 px-3 text-slate-400 hover:text-indigo-600 transition-colors z-10">
+                    <i class="ph-bold ph-magnifying-glass text-lg"></i>
+                </button>
+                <input type="text" name="q" value="{{ search_query|default:'' }}" placeholder="Search name or student ID..." 
+                    style="padding-left: 50px !important;"
+                    class="w-full pr-4 py-3 rounded-2xl border border-slate-100 bg-slate-50/50 text-sm font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none">
+            </div>
+
+            <div class="hidden md:block h-8 w-px bg-slate-100 mx-2"></div>
+
+            <!-- Risk Status Filter -->
+            <div class="flex items-center gap-3 w-full md:w-auto">
+                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Filter Status:</span>
+                <div class="relative w-full md:w-64">
+                    <select name="risk_level" onchange="this.form.submit()" 
+                        class="w-full pl-4 pr-10 py-3 rounded-2xl border border-slate-100 bg-slate-50/50 text-sm font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all appearance-none cursor-pointer">
+                        <option value="" {% if not current_risk_level %}selected{% endif %}>All Students</option>
+                        <option value="High" {% if current_risk_level == 'High' %}selected{% endif %}>⚠️ High Risk Forecast</option>
+                        <option value="Low" {% if current_risk_level == 'Low' %}selected{% endif %}>✅ Low Risk Forecast</option>
+                        <option value="Pending" {% if current_risk_level == 'Pending' %}selected{% endif %}>🕒 Pending Analysis</option>
+                    </select>
+                    <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                        <i class="ph-bold ph-caret-down"></i>
+                    </div>
+                </div>
+            </div>
+        </form>
+        
+        <div class="flex items-center gap-3 w-full lg:w-auto border-t lg:border-t-0 pt-4 lg:pt-0 border-slate-50">
+            <button onclick="runBulkPrediction()" class="flex-1 lg:flex-none inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-amber-50 text-amber-600 border border-amber-100 font-black text-xs hover:bg-amber-100 transition-all group">
+                <i class="ph-bold ph-lightning group-hover:animate-pulse"></i>
+                Batch Analysis
+            </button>
+            <a href="{% url 'bulk_upload_students' %}" class="flex-1 lg:flex-none inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-slate-50 text-slate-600 border border-slate-100 font-black text-xs hover:bg-slate-100 transition-all">
+                <i class="ph-bold ph-upload-simple"></i>
+                Import Data
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Registry Table -->
+<div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full text-left">
+            <thead>
+                <tr class="bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] border-b border-slate-100">
+                    <th class="px-8 py-5">Student Identity</th>
+                    <th class="px-8 py-5">Academic Stats</th>
+                    <th class="px-8 py-5 text-center">Risk Forecast</th>
+                    <th class="px-8 py-5 text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-50">
+                {% for student in students %}
+                <tr class="group hover:bg-indigo-50/30 transition-colors">
+                    <td class="px-8 py-6">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-black text-lg">
+                                {{ student.name|slice:":1" }}
+                            </div>
+                            <div>
+                                <p class="font-black text-slate-900">{{ student.name }}</p>
+                                <p class="text-xs text-slate-400 font-medium">{{ student.department.name }} • {{ student.student_id }}</p>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-8 py-6">
+                        <div class="flex flex-col gap-1 text-xs">
+                            <span class="font-bold text-slate-700">Attendance: {{ student.attendance_percentage }}%</span>
+                            <span class="font-bold text-slate-700">Score: {{ student.overall_score }}%</span>
+                        </div>
+                    </td>
+                    <td class="px-8 py-6 text-center" id="risk-cell-{{ student.student_id }}">
+                        {% if student.result == '0' or student.result == 0 %}
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-50 text-red-600 text-[10px] font-black uppercase tracking-wider">
+                                <i class="ph-bold ph-warning-circle"></i> High Risk
+                            </span>
+                        {% elif student.result == '1' or student.result == 1 %}
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-wider">
+                                <i class="ph-bold ph-check-circle"></i> Low Risk
+                            </span>
+                        {% else %}
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-500 text-[10px] font-black uppercase tracking-wider">
+                                <i class="ph-bold ph-clock"></i> Pending
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-8 py-6 text-right">
+                        <div class="flex justify-end gap-2">
+                            <button onclick="runPrediction('{{ student.student_id }}')" class="p-2 rounded-xl bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all shadow-sm" title="Trigger Prediction">
+                                <i class="ph-bold ph-lightning text-lg"></i>
+                            </button>
+                            <a href="{% url 'student_dashboard' student.student_id %}" class="p-2 rounded-xl bg-slate-50 text-slate-400 hover:bg-indigo-600 hover:text-white transition-all shadow-sm">
+                                <i class="ph-bold ph-eye text-lg"></i>
+                            </a>
+                            {% if user.user_type == 'admin' %}
+                            <a href="{% url 'ads_student_update' student.student_id %}" class="p-2 rounded-xl bg-slate-50 text-slate-400 hover:bg-amber-500 hover:text-white transition-all shadow-sm">
+                                <i class="ph-bold ph-pencil-simple-line text-lg"></i>
+                            </a>
+                            <button onclick="deleteStudent('{{ student.student_id }}')" class="p-2 rounded-xl bg-slate-50 text-slate-400 hover:bg-red-500 hover:text-white transition-all shadow-sm">
+                                <i class="ph-bold ph-trash text-lg"></i>
+                            </button>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Pagination -->
+{% if students.has_other_pages %}
+<div class="mt-8 flex items-center justify-center gap-2">
+    {% if students.has_previous %}
+        <a href="?page={{ students.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if current_risk_level %}&risk_level={{ current_risk_level }}{% endif %}" class="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-500 hover:border-indigo-500 hover:text-indigo-600 transition-all shadow-sm">
+            <i class="ph-bold ph-caret-left"></i>
+        </a>
+    {% endif %}
+
+    {% for i in students.paginator.page_range %}
+        {% if students.number == i %}
+            <span class="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black shadow-lg shadow-indigo-600/20">{{ i }}</span>
+        {% elif i > students.number|add:'-3' and i < students.number|add:'3' %}
+            <a href="?page={{ i }}{% if search_query %}&q={{ search_query }}{% endif %}{% if current_risk_level %}&risk_level={{ current_risk_level }}{% endif %}" class="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-500 font-bold hover:border-indigo-500 hover:text-indigo-600 transition-all shadow-sm">{{ i }}</a>
+        {% endif %}
+    {% endfor %}
+
+    {% if students.has_next %}
+        <a href="?page={{ students.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if current_risk_level %}&risk_level={{ current_risk_level }}{% endif %}" class="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-500 hover:border-indigo-500 hover:text-indigo-600 transition-all shadow-sm">
+            <i class="ph-bold ph-caret-right"></i>
+        </a>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- Modal Templates -->
+<template id="enrollmentFormTemplate">
+    <div class="mb-8">
+        <h2 class="text-2xl font-black text-slate-900 tracking-tight">Enroll New Student</h2>
+        <p class="text-slate-500 text-sm mt-1">Provide student profile and behavioral data.</p>
+    </div>
+    <form method="POST" action="{% url 'student_list' %}" class="space-y-6">
+        {% csrf_token %}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {% for field in student_form %}
+                {% if field.name == 'department' and user.user_type == 'hod' %}
+                    <input type="hidden" name="department" value="{{ user.department.id }}">
+                {% else %}
+                <div class="flex flex-col gap-2">
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] ml-1">{{ field.label }}</label>
+                    {{ field }}
+                </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+        <div class="pt-6 flex gap-4">
+            <button type="submit" class="flex-1 bg-indigo-600 text-white py-4 rounded-2xl font-black hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20">
+                Enroll Student
+            </button>
+            <button type="button" onclick="closeModal()" class="flex-1 bg-slate-50 text-slate-500 py-4 rounded-2xl font-bold hover:bg-slate-100 transition-all">
+                Cancel
+            </button>
+        </div>
+    </form>
+</template>
+
+<style>
+    input[type="text"], input[type="number"], input[type="email"], select, textarea {
+        width: 100%;
+        padding: 0.875rem 1rem;
+        border-radius: 1rem;
+        border: 1px solid #e2e8f0;
+        background: #f8fafc;
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+    input:focus, select:focus, textarea:focus {
+        outline: none;
+        border-color: #6366f1;
+        background: #ffffff;
+        box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function openEnrollmentModal() {
+        const template = document.getElementById('enrollmentFormTemplate');
+        openModal(template.innerHTML);
+    }
+
+    function runPrediction(id) {
+        confirmAction({
+            title: 'Trigger Prediction',
+            message: 'Recalculate the academic risk forecast for this student based on the latest performance data?',
+            icon: 'ph-lightning',
+            color: 'indigo',
+            okText: 'Run Prediction',
+            onConfirm: () => {
+                const cell = document.getElementById(`risk-cell-${id}`);
+                const originalContent = cell.innerHTML;
+                
+                cell.innerHTML = `<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-500 text-[10px] font-black uppercase animate-pulse">
+                                    <i class="ph-bold ph-circle-notch animate-spin"></i> Processing...
+                                  </span>`;
+                
+                fetch(`/predict/${id}/`, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.prediction !== undefined) {
+                        if (data.prediction == 0) {
+                            cell.innerHTML = `<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-50 text-red-600 text-[10px] font-black uppercase tracking-wider">
+                                                <i class="ph-bold ph-warning-circle"></i> High Risk
+                                              </span>`;
+                        } else {
+                            cell.innerHTML = `<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-wider">
+                                                <i class="ph-bold ph-check-circle"></i> Low Risk
+                                              </span>`;
+                        }
+                    } else if (data.error) {
+                        showAlert("Prediction Failed", data.error, "error");
+                        cell.innerHTML = originalContent;
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    cell.innerHTML = originalContent;
+                });
+            }
+        });
+    }
+
+    function runBulkPrediction() {
+        confirmAction({
+            title: 'Bulk Analysis',
+            message: 'Refresh risk forecasts for the entire student registry? This may take a moment to process all records.',
+            icon: 'ph-lightning',
+            color: 'amber',
+            okText: 'Execute Batch',
+            onConfirm: () => {
+                const btn = event.currentTarget;
+                const originalText = btn.innerHTML;
+                btn.disabled = true;
+                btn.innerHTML = `<i class="ph-bold ph-circle-notch animate-spin"></i> Running...`;
+                
+                fetch(`/bulk-predict/`, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                .then(async res => {
+                    const data = await res.json();
+                    if (res.ok) {
+                        showAlert("Analysis Complete", data.message);
+                        setTimeout(() => location.reload(), 2000);
+                    } else {
+                        throw new Error(data.error || data.message || "Server Error");
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    showAlert("Batch Failed", err.message, "error");
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                });
+            }
+        });
+    }
+
+    function deleteStudent(id) {
+        confirmAction({
+            title: 'Delete Student',
+            message: 'Permanently remove this student record? This will erase all behavioral data and performance history.',
+            icon: 'ph-trash',
+            color: 'red',
+            okText: 'Delete',
+            onConfirm: () => {
+                fetch(`/ads/student/delete/${id}/`, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                }).then(res => res.json())
+                  .then(data => {
+                      showAlert("Record Deleted", data.message);
+                      setTimeout(() => location.reload(), 1500);
+                  });
+            }
+        });
+    }
+</script>
+{% endblock %}

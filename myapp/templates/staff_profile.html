@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+
+{% block title %}Account Settings | EduPredict{% endblock %}
+
+{% block content %}
+<header class="mb-10">
+    <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Account Settings</h1>
+    <p class="text-slate-500 mt-1">Manage your personal information and departmental associations.</p>
+</header>
+
+<div class="max-w-2xl">
+    <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+        <div class="p-8 bg-slate-50/50 border-b border-slate-100">
+            <div class="flex items-center gap-6">
+                <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-black text-3xl shadow-xl">
+                    {{ user.email|slice:":1"|upper }}
+                </div>
+                <div>
+                    <h2 class="text-xl font-black text-slate-900">{{ user.name|default:"Set your name" }}</h2>
+                    <p class="text-slate-500 font-medium">{{ user.email }}</p>
+                    <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-100 text-indigo-700 text-[10px] font-black uppercase tracking-widest mt-2">
+                        {{ user.user_type }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <form method="POST" class="p-8 space-y-6">
+            {% csrf_token %}
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Full Name</label>
+                    <input type="text" name="name" value="{{ form.name.value|default:'' }}" 
+                        class="w-full px-4 py-3 rounded-2xl border border-slate-100 bg-slate-50/50 text-sm font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none">
+                    {% if form.name.errors %}
+                        <p class="text-red-500 text-[10px] font-bold">{{ form.name.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Phone Number</label>
+                    <input type="text" name="phone" value="{{ form.phone.value|default:'' }}" 
+                        class="w-full px-4 py-3 rounded-2xl border border-slate-100 bg-slate-50/50 text-sm font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none">
+                </div>
+            </div>
+
+            <div class="space-y-2">
+                <div class="flex items-center justify-between">
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Assigned Department</label>
+                    {% if user.user_type == 'hod' %}
+                    <span class="text-[9px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md flex items-center gap-1">
+                        <i class="ph-bold ph-lock"></i> Managed by Admin
+                    </span>
+                    {% endif %}
+                </div>
+                <div class="relative">
+                    <select name="department" 
+                        {% if user.user_type == 'hod' %}disabled{% endif %}
+                        class="w-full pl-4 pr-10 py-3 rounded-2xl border border-slate-100 bg-slate-50/50 text-sm font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all appearance-none {% if user.user_type == 'hod' %}cursor-not-allowed opacity-70{% else %}cursor-pointer{% endif %}">
+                        {% for choice in form.department.field.choices %}
+                            <option value="{{ choice.0 }}" {% if form.department.value|stringformat:"s" == choice.0|stringformat:"s" %}selected{% endif %}>
+                                {{ choice.1 }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                        <i class="ph-bold ph-caret-down"></i>
+                    </div>
+                </div>
+                {% if user.user_type == 'hod' %}
+                    <input type="hidden" name="department" value="{{ user.department.id }}">
+                {% endif %}
+            </div>
+
+            <div class="space-y-6 pt-6 border-t border-slate-50">
+                <div class="flex items-center gap-2">
+                    <i class="ph-bold ph-shield-check text-indigo-500"></i>
+                    <p class="text-xs font-black text-slate-800 uppercase tracking-widest">Security & Credentials</p>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">New Password</label>
+                        <input type="password" name="new_password" placeholder="Leave blank to keep current"
+                            class="w-full px-4 py-3 rounded-2xl border border-slate-100 bg-slate-50/50 text-sm font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none">
+                    </div>
+
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Confirm Password</label>
+                        <input type="password" name="confirm_password" placeholder="Re-type new password"
+                            class="w-full px-4 py-3 rounded-2xl border border-slate-100 bg-slate-50/50 text-sm font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none">
+                        {% if form.confirm_password.errors %}
+                            <p class="text-red-500 text-[10px] font-bold">{{ form.confirm_password.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-6 border-t border-slate-50 flex items-center justify-between">
+                <div class="text-xs text-slate-400 font-medium">
+                    <i class="ph-bold ph-info mr-1"></i>
+                    Session remains active after update.
+                </div>
+                <button type="submit" class="inline-flex items-center gap-2 px-8 py-3 rounded-2xl bg-indigo-600 text-white font-black hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20">
+                    <i class="ph-bold ph-check-circle"></i>
+                    Save Profile
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

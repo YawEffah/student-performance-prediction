@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Student Academic Report</title>
+    <style>
+        body { font-family: 'Helvetica', 'Arial', sans-serif; color: #333; line-height: 1.6; }
+        .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #4f46e5; padding-bottom: 10px; }
+        .logo { font-size: 24px; font-weight: bold; color: #4f46e5; }
+        .student-header { display: flex; gap: 30px; margin-bottom: 30px; background: #f8fafc; padding: 20px; border-radius: 10px; }
+        .section { margin-bottom: 25px; }
+        .section-title { font-size: 16px; font-weight: bold; color: #4f46e5; border-bottom: 1px solid #e2e8f0; margin-bottom: 10px; padding-bottom: 5px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th, td { border: 1px solid #e2e8f0; padding: 10px; text-align: left; font-size: 13px; }
+        th { background-color: #f1f5f9; color: #475569; width: 40%; }
+        .risk-badge { padding: 5px 10px; border-radius: 4px; font-weight: bold; }
+        .risk-high { background: #fee2e2; color: #ef4444; }
+        .risk-low { background: #d1fae5; color: #10b981; }
+        .footer { text-align: center; font-size: 10px; color: #94a3b8; margin-top: 40px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">EduPredict</div>
+        <p>Individual Student Performance Report</p>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Personal Information</div>
+        <table>
+            <tr><th>Student Name</th><td>{{ name }}</td></tr>
+            <tr><th>Student ID</th><td>{{ student_id }}</td></tr>
+            <tr><th>Department</th><td>{{ dept_name }}</td></tr>
+            <tr><th>Head of Department</th><td>{{ hod }}</td></tr>
+            <tr><th>Age / Gender</th><td>{{ age }} / {{ gender }}</td></tr>
+        </table>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Academic Metrics</div>
+        <table>
+            <tr><th>Attendance Rate</th><td>{{ attendance_percentage }}%</td></tr>
+            <tr><th>Weekly Study Hours</th><td>{{ study_hours }} hours</td></tr>
+            <tr><th>Overall Score</th><td>{{ overall_score }}%</td></tr>
+            <tr><th>Current Grade</th><td>{{ final_grade|upper }}</td></tr>
+        </table>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Risk Assessment</div>
+        <table>
+            <tr>
+                <th>System Risk Forecast</th>
+                <td>
+                    <span class="risk-badge {% if risk_level == 'High' %}risk-high{% else %}risk-low{% endif %}">
+                        {{ risk_level|upper }} RISK
+                    </span>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Intervention & Recommendations</div>
+        <div style="font-size: 13px; padding: 15px; background: #fffbeb; border: 1px solid #fef3c7; border-radius: 8px;">
+            {{ messages|linebreaksbr }}
+        </div>
+    </div>
+
+    <div class="footer">
+        Generated on {% now "F j, Y" %}. This report is strictly confidential.
+    </div>
+</body>
+</html>

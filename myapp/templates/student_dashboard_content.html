@@ -1,0 +1,306 @@
+<div class="bg-indigo-950 rounded-[3rem] p-10 text-white shadow-2xl shadow-indigo-900/40 relative overflow-hidden mb-10">
+    <div class="relative z-10 flex flex-col md:flex-row items-center gap-8">
+        <div class="w-32 h-32 rounded-[2.5rem] bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-5xl font-black shadow-inner">
+            {{ student.name|slice:":1" }}
+        </div>
+        <div class="text-center md:text-left flex-1">
+            <h1 class="text-4xl font-black tracking-tight mb-2">{{ student.name }}</h1>
+            <div class="flex flex-wrap justify-center md:justify-start gap-4">
+                <span class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 border border-white/10 text-sm font-medium">
+                    <i class="ph ph-building"></i> {{ student.department.name }}
+                </span>
+                <span class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 border border-white/10 text-sm font-medium">
+                    <i class="ph ph-identification-card"></i> {{ student.student_id }}
+                </span>
+            </div>
+        </div>
+        <div>
+            {% if request.user.user_type == 'hod' or request.user.user_type == 'admin' %}
+            <button onclick="openInterventionModal()" class="inline-flex items-center gap-3 px-8 py-4 rounded-2xl bg-indigo-600 text-white font-black hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-600/20 group mr-4">
+                <i class="ph-bold ph-plus-circle text-xl group-hover:scale-110 transition-transform"></i>
+                Assign Intervention
+            </button>
+            {% endif %}
+            <a href="{% url 'generate_report' student.student_id %}" class="inline-flex items-center gap-3 px-8 py-4 rounded-2xl bg-white text-indigo-950 font-black hover:bg-indigo-50 transition-all shadow-xl shadow-black/20 group">
+                <i class="ph-bold ph-file-pdf text-xl group-hover:scale-110 transition-transform"></i>
+                Download Report
+            </a>
+        </div>
+    </div>
+    <!-- Decorative Blur -->
+    <div class="absolute -top-24 -right-24 w-64 h-64 bg-indigo-500/20 rounded-full blur-[80px]"></div>
+    <div class="absolute -bottom-24 -left-24 w-64 h-64 bg-emerald-500/10 rounded-full blur-[80px]"></div>
+</div>
+
+{% if student.result == '0' or student.result == 0 %}
+<div class="mb-10 p-6 rounded-3xl bg-red-50 border-2 border-red-100 flex items-center gap-6 shadow-sm">
+    <div class="bg-red-500 text-white p-4 rounded-2xl shadow-lg shadow-red-500/20">
+        <i class="ph-bold ph-warning-diamond text-3xl"></i>
+    </div>
+    <div>
+        <h4 class="text-xl font-black text-red-900">High Academic Risk Predicted</h4>
+        <p class="text-red-700/80 font-medium">Our predictive models suggest immediate intervention is required to support this student's academic journey.</p>
+    </div>
+</div>
+{% else %}
+<div class="mb-10 p-6 rounded-3xl bg-emerald-50 border-2 border-emerald-100 flex items-center gap-6 shadow-sm">
+    <div class="bg-emerald-500 text-white p-4 rounded-2xl shadow-lg shadow-emerald-500/20">
+        <i class="ph-bold ph-check-circle text-3xl"></i>
+    </div>
+    <div>
+        <h4 class="text-xl font-black text-emerald-900">Low Academic Risk Predicted</h4>
+        <p class="text-emerald-700/80 font-medium">This student is currently performing well and shows a high probability of academic success.</p>
+    </div>
+</div>
+{% endif %}
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+    <!-- Performance Radar -->
+    <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
+        <h3 class="text-xl font-bold mb-6 flex items-center gap-2">
+            <i class="ph-bold ph-chart-polar text-indigo-500"></i>
+            Behavioral Metrics
+        </h3>
+        <div class="h-80">
+            <canvas id="performanceChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Stats Dashboard -->
+    <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
+        <h3 class="text-xl font-bold mb-8 flex items-center gap-2 text-slate-800">
+            <i class="ph-bold ph-activity text-indigo-500"></i>
+            Key Indicators
+        </h3>
+        <div class="space-y-8">
+            <div>
+                <div class="flex justify-between items-end mb-3">
+                    <div>
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Attendance</p>
+                        <p class="text-2xl font-black text-slate-900">{{ student.attendance_percentage }}%</p>
+                    </div>
+                    <span class="text-sm font-bold text-slate-400 italic">Target: 85%</span>
+                </div>
+                <div class="h-3 bg-slate-100 rounded-full overflow-hidden">
+                    <div class="h-full bg-indigo-500 rounded-full shadow-sm shadow-indigo-500/20" style="width: {{ student.attendance_percentage }}%"></div>
+                </div>
+            </div>
+
+            <div>
+                <div class="flex justify-between items-end mb-3">
+                    <div>
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Weekly Study</p>
+                        <p class="text-2xl font-black text-slate-900">{{ student.study_hours }} Hours</p>
+                    </div>
+                    <span class="text-sm font-bold text-slate-400 italic">Max: 40 hrs</span>
+                </div>
+                <div class="h-3 bg-slate-100 rounded-full overflow-hidden">
+                    <div class="h-full bg-amber-500 rounded-full shadow-sm shadow-amber-500/20" style="width: {% widthratio student.study_hours 40 100 %}%"></div>
+                </div>
+            </div>
+
+            <div>
+                <div class="flex justify-between items-end mb-3">
+                    <div>
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Overall Grade</p>
+                        <p class="text-2xl font-black text-slate-900">{{ student.overall_score }}%</p>
+                    </div>
+                    <span class="text-sm font-bold text-slate-400 italic">Pass: 50%</span>
+                </div>
+                <div class="h-3 bg-slate-100 rounded-full overflow-hidden">
+                    <div class="h-full bg-emerald-500 rounded-full shadow-sm shadow-emerald-500/20" style="width: {{ student.overall_score }}%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
+    <div class="flex justify-between items-center mb-8">
+        <h3 class="text-xl font-bold flex items-center gap-2 text-slate-800">
+            <i class="ph-bold ph-list-checks text-indigo-500"></i>
+            Intervention Timeline
+        </h3>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-left">
+            <thead>
+                <tr class="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50">
+                    <th class="pb-4">Date</th>
+                    <th class="pb-4">Action Details</th>
+                    <th class="pb-4">Category</th>
+                    <th class="pb-4 text-right">Status</th>
+                    {% if request.user.user_type == 'hod' %}
+                    <th class="pb-4 text-right">Actions</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-50">
+                {% for intervention in student.interventions.all %}
+                <tr class="hover:bg-slate-50 transition-colors">
+                    <td class="py-5 font-bold text-slate-500 text-sm">{{ intervention.created_at|date:"M d, Y" }}</td>
+                    <td class="py-5">
+                        <p class="text-sm text-slate-800 font-medium leading-relaxed">{{ intervention.action_taken|truncatechars:100 }}</p>
+                    </td>
+                    <td class="py-5">
+                        <span class="text-xs font-bold px-3 py-1 bg-indigo-50 text-indigo-600 rounded-lg">{{ intervention.intervention_type }}</span>
+                    </td>
+                    <td class="py-5 text-right">
+                        <span class="text-xs font-black uppercase tracking-widest 
+                            {% if intervention.status == 'Completed' %}text-emerald-600{% elif intervention.status == 'Ongoing' %}text-amber-600{% else %}text-indigo-600{% endif %}">
+                            {{ intervention.status }}
+                        </span>
+                    </td>
+                    {% if request.user.user_type == 'hod' or request.user.user_type == 'admin' %}
+                    <td class="py-5 text-right">
+                        <button onclick="deleteIntervention({{ intervention.id }})" class="p-2 rounded-lg bg-slate-50 text-slate-400 hover:bg-red-500 hover:text-white transition-all">
+                            <i class="ph-bold ph-trash"></i>
+                        </button>
+                    </td>
+                    {% endif %}
+                </tr>
+                {% empty %}
+                <tr><td colspan="5" class="py-12 text-center text-slate-400 italic font-medium">No recorded interventions for this student.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% if request.user.user_type == 'hod' or request.user.user_type == 'admin' %}
+<!-- Intervention Modal Template -->
+<template id="interventionFormTemplate">
+    <div class="mb-8">
+        <h2 class="text-2xl font-black text-slate-900 tracking-tight">Record New Intervention</h2>
+        <p class="text-slate-500 text-sm mt-1">Document academic support actions for {{ student.name }}.</p>
+    </div>
+    <form id="interventionForm" class="space-y-6">
+        {% csrf_token %}
+        <div class="space-y-4">
+            <div class="flex flex-col gap-2">
+                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Intervention Type</label>
+                <select name="intervention_type" class="w-full p-4 rounded-2xl border border-slate-200 bg-slate-50 focus:ring-2 focus:ring-indigo-500 transition-all">
+                    <option value="Meeting">Parent-Teacher Meeting</option>
+                    <option value="Extra Class">Additional Tutoring</option>
+                    <option value="Counseling">School Counseling</option>
+                    <option value="Peer Support">Peer Mentoring</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            <div class="flex flex-col gap-2">
+                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Status</label>
+                <select name="status" class="w-full p-4 rounded-2xl border border-slate-200 bg-slate-50 focus:ring-2 focus:ring-indigo-500 transition-all">
+                    <option value="Planned">Planned</option>
+                    <option value="Ongoing">Ongoing</option>
+                    <option value="Completed">Completed</option>
+                </select>
+            </div>
+            <div class="flex flex-col gap-2">
+                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Actions Taken / Recommendations</label>
+                <textarea name="action_taken" rows="4" class="w-full p-4 rounded-2xl border border-slate-200 bg-slate-50 focus:ring-2 focus:ring-indigo-500 transition-all" placeholder="Describe the specific actions or recommendations..."></textarea>
+            </div>
+        </div>
+        <div class="pt-6 flex gap-4">
+            <button type="submit" class="flex-1 bg-indigo-600 text-white py-4 rounded-2xl font-black hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20">Submit Record</button>
+            <button type="button" onclick="closeModal()" class="flex-1 bg-slate-50 text-slate-500 py-4 rounded-2xl font-bold hover:bg-slate-100 transition-all">Cancel</button>
+        </div>
+    </form>
+</template>
+
+<script>
+    function openInterventionModal() {
+        const template = document.getElementById('interventionFormTemplate');
+        openModal(template.innerHTML);
+        
+        document.getElementById('interventionForm').onsubmit = function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            
+            fetch(`/intervention/record/{{ student.student_id }}/`, {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.message) {
+                    showAlert("Success", data.message);
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showAlert("Error", data.error || "Failed to record intervention.", "error");
+                }
+            });
+        };
+    }
+
+    function deleteIntervention(id) {
+        confirmAction({
+            title: 'Delete Intervention',
+            message: 'Are you sure you want to delete this intervention record? This action is permanent.',
+            icon: 'ph-trash',
+            color: 'red',
+            okText: 'Delete',
+            onConfirm: () => {
+                fetch(`/intervention/delete/${id}/`, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    showAlert("Deleted", data.message);
+                    setTimeout(() => location.reload(), 1500);
+                });
+            }
+        });
+    }
+</script>
+{% endif %}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const perfCtx = document.getElementById('performanceChart').getContext('2d');
+    const chartData = {{ chart_data_json|safe }};
+    
+    new Chart(perfCtx, {
+        type: 'radar',
+        data: {
+            labels: chartData.labels,
+            datasets: [
+                {
+                    label: 'Student Metrics',
+                    data: chartData.student_data,
+                    backgroundColor: 'rgba(79, 70, 229, 0.2)',
+                    borderColor: '#6366f1',
+                    borderWidth: 3,
+                    pointBackgroundColor: '#6366f1',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: '#6366f1'
+                },
+                {
+                    label: 'Dept Average',
+                    data: chartData.avg_data,
+                    backgroundColor: 'rgba(148, 163, 184, 0.1)',
+                    borderColor: 'rgba(148, 163, 184, 0.4)',
+                    borderWidth: 2,
+                    pointBackgroundColor: 'rgba(148, 163, 184, 0.4)',
+                    pointBorderColor: '#fff'
+                }
+            ]
+        },
+        options: {
+            maintainAspectRatio: false,
+            scales: {
+                r: {
+                    grid: { color: '#f1f5f9' },
+                    angleLines: { color: '#f1f5f9' },
+                    suggestedMin: 0,
+                    suggestedMax: 100,
+                    ticks: { display: false }
+                }
+            },
+            plugins: {
+                legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20, font: { weight: 'bold' } } }
+            }
+        }
+    });
+</script>

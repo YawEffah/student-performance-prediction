@@ -1,0 +1,199 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}EduPredict{% endblock %}</title>
+    
+    <!-- Scripts & Frameworks -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Custom scrollbar for clean look */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
+    </style>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="bg-slate-50 font-sans text-slate-900 overflow-x-hidden">
+    {% block body_wrapper %}
+    <div class="flex min-h-screen">
+        <!-- Sidebar -->
+        {% include 'partials/sidebar.html' %}
+        
+        <!-- Main Content -->
+        <main class="flex-1 overflow-y-auto">
+            <div class="max-w-7xl mx-auto px-6 py-8">
+                {% if messages %}
+                    <div class="mb-8 space-y-2">
+                        {% for message in messages %}
+                            <div class="p-4 rounded-xl border-l-4 {% if message.tags == 'error' %}bg-red-50 border-red-500 text-red-700{% else %}bg-emerald-50 border-emerald-500 text-emerald-700{% endif %} shadow-sm flex items-center gap-3">
+                                <i class="ph-bold {% if message.tags == 'error' %}ph-warning-circle{% else %}ph-check-circle{% endif %} text-xl"></i>
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+    {% endblock %}
+
+    <!-- Global Modal Container -->
+    <div id="globalModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <!-- Background overlay -->
+            <div id="modalOverlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" aria-hidden="true"></div>
+
+            <!-- Modal Panel -->
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div id="modalPanel" class="inline-block align-bottom bg-white rounded-[2.5rem] text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
+                <div class="bg-white px-8 pt-8 pb-8 sm:p-10 relative">
+                    <button onclick="closeModal()" class="absolute top-8 right-8 text-slate-400 hover:text-slate-600 transition-colors">
+                        <i class="ph-bold ph-x text-2xl"></i>
+                    </button>
+                    <div id="modalContent">
+                        <!-- Content will be injected here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal Template -->
+    <template id="confirmModalTemplate">
+        <div class="text-center">
+            <div id="confirmIcon" class="w-20 h-20 mx-auto rounded-3xl flex items-center justify-center text-4xl mb-6"></div>
+            <h3 id="confirmTitle" class="text-2xl font-black text-slate-900 mb-2"></h3>
+            <p id="confirmMessage" class="text-slate-500 font-medium mb-8 leading-relaxed"></p>
+            <div class="flex gap-4">
+                <button id="confirmCancelBtn" onclick="closeModal()" class="flex-1 px-6 py-4 rounded-2xl bg-slate-50 text-slate-500 font-bold hover:bg-slate-100 transition-all">Cancel</button>
+                <button id="confirmOkBtn" class="flex-1 px-6 py-4 rounded-2xl text-white font-black transition-all shadow-lg"></button>
+            </div>
+        </div>
+    </template>
+
+    <script>
+        function openModal(contentHtml, maxWidth = 'sm:max-w-2xl') {
+            const panel = document.getElementById('modalPanel');
+            panel.className = panel.className.replace(/sm:max-w-[^ ]+/, maxWidth);
+            document.getElementById('modalContent').innerHTML = contentHtml;
+            document.getElementById('globalModal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal() {
+            document.getElementById('globalModal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+
+        function confirmAction({ title, message, icon = 'ph-warning-circle', color = 'indigo', okText = 'Confirm', onConfirm }) {
+            const template = document.getElementById('confirmModalTemplate').content.cloneNode(true);
+            
+            const iconDiv = template.querySelector('#confirmIcon');
+            iconDiv.innerHTML = `<i class="ph-bold ${icon}"></i>`;
+            
+            const okBtn = template.querySelector('#confirmOkBtn');
+            okBtn.textContent = okText;
+            
+            if (color === 'red') {
+                iconDiv.className += ' bg-red-50 text-red-600';
+                okBtn.className += ' bg-red-600 hover:bg-red-700 shadow-red-600/20';
+            } else if (color === 'amber') {
+                iconDiv.className += ' bg-amber-50 text-amber-600';
+                okBtn.className += ' bg-amber-600 hover:bg-amber-700 shadow-amber-600/20';
+            } else {
+                iconDiv.className += ' bg-indigo-50 text-indigo-600';
+                okBtn.className += ' bg-indigo-600 hover:bg-indigo-700 shadow-indigo-600/20';
+            }
+
+            template.querySelector('#confirmTitle').textContent = title;
+            template.querySelector('#confirmMessage').textContent = message;
+            
+            const tempDiv = document.createElement('div');
+            tempDiv.appendChild(template);
+            
+            openModal(tempDiv.innerHTML, 'sm:max-w-md');
+            
+            // Re-bind click since we injected HTML
+            document.getElementById('confirmOkBtn').onclick = () => {
+                onConfirm();
+                closeModal();
+            };
+        }
+
+        function showAlert(title, message, type = 'success') {
+            const icon = type === 'error' ? 'ph-warning-circle' : 'ph-check-circle';
+            const color = type === 'error' ? 'red' : 'indigo';
+            
+            confirmAction({
+                title,
+                message,
+                icon,
+                color,
+                okText: 'Understood',
+                onConfirm: () => {}
+            });
+            // Hide cancel button for alerts
+            setTimeout(() => {
+                const cancelBtn = document.getElementById('confirmCancelBtn');
+                if (cancelBtn) cancelBtn.style.display = 'none';
+            }, 10);
+        }
+
+        document.getElementById('modalOverlay').addEventListener('click', closeModal);
+
+        // Global Form Loading State
+        document.addEventListener('submit', function(e) {
+            const form = e.target;
+            // Find the primary submit button
+            const submitBtn = form.querySelector('button[type="submit"]');
+            
+            if (submitBtn && !submitBtn.dataset.noLoading) {
+                // Prevent multiple clicks
+                if (submitBtn.disabled) return;
+                
+                // Store original content
+                submitBtn.dataset.originalContent = submitBtn.innerHTML;
+                submitBtn.disabled = true;
+                submitBtn.classList.add('opacity-80', 'cursor-not-allowed');
+                
+                // Add spinner
+                submitBtn.innerHTML = `
+                    <svg class="animate-spin h-5 w-5 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>Processing...</span>
+                `;
+            }
+        });
+    </script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,378 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard | EduPredict{% endblock %}
+
+{% block content %}
+<header class="mb-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <div>
+        <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">
+            {% if user.user_type == 'admin' %}Institutional Overview{% else %}Departmental Oversight{% endif %}
+        </h1>
+        <p class="text-slate-500 mt-1">
+            {% if user.user_type == 'admin' %}Monitoring institutional performance and risk analytics.{% else %}Tracking student progress in {{ hod.department.name }} Department.{% endif %}
+        </p>
+    </div>
+    {% if user.user_type == 'hod' %}
+    <div class="flex items-center gap-2 text-indigo-600 bg-indigo-50 px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-widest border border-indigo-100">
+        <i class="ph-bold ph-building"></i>
+        {{ hod.department.name }}
+    </div>
+    {% endif %}
+</header>
+
+<!-- Stats Grid -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+    {% if user.user_type == 'admin' %}
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-5">
+            <div class="bg-indigo-50 p-4 rounded-xl text-indigo-600"><i class="ph-bold ph-users text-2xl"></i></div>
+            <div>
+                <p class="text-sm font-bold text-slate-500 uppercase tracking-wider">Total Students</p>
+                <h2 class="text-3xl font-black text-slate-900">{{ total_students }}</h2>
+            </div>
+        </div>
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-5">
+            <div class="bg-emerald-50 p-4 rounded-xl text-emerald-600"><i class="ph-bold ph-user-gear text-2xl"></i></div>
+            <div>
+                <p class="text-sm font-bold text-slate-500 uppercase tracking-wider">Active HODs</p>
+                <h2 class="text-3xl font-black text-slate-900">{{ total_hods }}</h2>
+            </div>
+        </div>
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-5">
+            <div class="bg-amber-50 p-4 rounded-xl text-amber-600"><i class="ph-bold ph-buildings text-2xl"></i></div>
+            <div>
+                <p class="text-sm font-bold text-slate-500 uppercase tracking-wider">Departments</p>
+                <h2 class="text-3xl font-black text-slate-900">{{ total_departments }}</h2>
+            </div>
+        </div>
+    {% else %}
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-5">
+            <div class="bg-indigo-50 p-4 rounded-xl text-indigo-600"><i class="ph-bold ph-users text-2xl"></i></div>
+            <div>
+                <p class="text-sm font-bold text-slate-500 uppercase tracking-wider">My Students</p>
+                <h2 class="text-3xl font-black text-slate-900">{{ students.count }}</h2>
+            </div>
+        </div>
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-5">
+            <div class="bg-red-50 p-4 rounded-xl text-red-600"><i class="ph-bold ph-warning-circle text-2xl"></i></div>
+            <div>
+                <p class="text-sm font-bold text-slate-500 uppercase tracking-wider">At Risk</p>
+                <h2 class="text-3xl font-black text-red-600">{{ students_zero }}</h2>
+            </div>
+        </div>
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-5">
+            <div class="bg-emerald-50 p-4 rounded-xl text-emerald-600"><i class="ph-bold ph-heart-handshake text-2xl"></i></div>
+            <div>
+                <p class="text-sm font-bold text-slate-500 uppercase tracking-wider">Interventions</p>
+                <h2 class="text-3xl font-black text-slate-900">{{ interventions.count }}</h2>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
+    <!-- Risk Analytics -->
+    <div class="lg:col-span-2 bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
+        <h3 class="text-xl font-bold mb-6 flex items-center gap-2">
+            <i class="ph-bold ph-chart-pie text-indigo-500"></i>
+            {% if user.user_type == 'admin' %}Global Risk Forecast{% else %}Departmental Strategy Overview{% endif %}
+        </h3>
+        
+        {% if user.user_type == 'hod' %}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div class="flex flex-col">
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 text-center">Student Performance Clusters</p>
+                <div class="h-64">
+                    <canvas id="riskChart"></canvas>
+                </div>
+            </div>
+            <div class="flex flex-col">
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 text-center">Support Workflow Status</p>
+                <div class="h-64">
+                    <canvas id="supportChart"></canvas>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="h-64">
+            <canvas id="riskChart"></canvas>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Right Column: Context Sensitive -->
+    <div class="lg:col-span-1 bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
+        {% if user.user_type == 'admin' %}
+            <!-- Top Section: Critical Cases -->
+            <div class="mb-10">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-bold flex items-center gap-2">
+                        <i class="ph-bold ph-warning-diamond text-red-500"></i>
+                        Critical Cases
+                    </h3>
+                    <a href="{% url 'student_list' %}?risk_level=High" class="text-sm font-bold text-indigo-600 hover:text-indigo-700">View All</a>
+                </div>
+                <div class="space-y-3">
+                    {% for student in students_with_zero_result|slice:":3" %}
+                    <a href="{% url 'student_dashboard' student.student_id %}" class="flex items-center gap-4 p-3 rounded-xl bg-red-50/50 hover:bg-red-50 transition-colors border border-red-100/50 group">
+                        <div class="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center font-black">
+                            {{ student.name|slice:":1" }}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="font-bold text-slate-800 text-sm truncate">{{ student.name }}</p>
+                            <p class="text-[10px] font-bold text-red-400 uppercase tracking-widest">{{ student.department.name }} • Score: {{ student.overall_score }}%</p>
+                        </div>
+                        <i class="ph-bold ph-arrow-right text-red-300 group-hover:text-red-500 transition-colors"></i>
+                    </a>
+                    {% empty %}
+                    <div class="text-center py-6 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                        <p class="text-slate-400 text-xs font-bold uppercase tracking-widest italic">No critical risks detected</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Bottom Section: Recent Interventions -->
+            <div>
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-bold flex items-center gap-2">
+                        <i class="ph-bold ph-heart-handshake text-indigo-500"></i>
+                        Support Progress
+                    </h3>
+                    <a href="{% url 'intervention_list' %}" class="text-sm font-bold text-indigo-600 hover:text-indigo-700">View All</a>
+                </div>
+                <div class="space-y-3">
+                    {% for intervention in interventions|slice:":3" %}
+                    <div class="flex items-center gap-4 p-3 rounded-xl bg-slate-50 hover:bg-indigo-50/50 transition-colors">
+                        <div class="w-9 h-9 rounded-xl flex-shrink-0 flex items-center justify-center
+                            {% if intervention.status == 'Completed' %}bg-emerald-100 text-emerald-600
+                            {% elif intervention.status == 'Ongoing' %}bg-amber-100 text-amber-600
+                            {% else %}bg-indigo-100 text-indigo-600{% endif %}">
+                            <i class="ph-bold ph-clipboard-text"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="font-bold text-slate-800 text-sm truncate">{{ intervention.student.name }}</p>
+                            <p class="text-[10px] font-medium text-slate-400">
+                                {{ intervention.get_intervention_type_display }}
+                                <span class="text-slate-300 mx-1">•</span> 
+                                <span class="text-indigo-400">{{ intervention.manager.name|default:intervention.manager.email }} ({{ intervention.student.department.name }})</span>
+                            </p>
+                        </div>
+                        <span class="text-[10px] font-black uppercase px-2 py-1 rounded-lg
+                            {% if intervention.status == 'Completed' %}bg-emerald-100 text-emerald-700
+                            {% elif intervention.status == 'Ongoing' %}bg-amber-100 text-amber-700
+                            {% else %}bg-indigo-100 text-indigo-700{% endif %}">
+                            {{ intervention.status }}
+                        </span>
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-6 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                        <p class="text-slate-400 text-xs font-bold uppercase tracking-widest italic">No recent interventions</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% else %}
+            <!-- Top Section: Critical Cases -->
+            <div class="mb-10">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-bold flex items-center gap-2">
+                        <i class="ph-bold ph-warning-diamond text-red-500"></i>
+                        Critical Cases
+                    </h3>
+                    <a href="{% url 'student_list' %}?risk_level=High" class="text-sm font-bold text-indigo-600 hover:text-indigo-700">View All</a>
+                </div>
+                <div class="space-y-3">
+                    {% for student in students_at_risk|slice:":3" %}
+                    <a href="{% url 'student_dashboard' student.student_id %}" class="flex items-center gap-4 p-3 rounded-xl bg-red-50/50 hover:bg-red-50 transition-colors border border-red-100/50 group">
+                        <div class="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center font-black">
+                            {{ student.name|slice:":1" }}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="font-bold text-slate-800 text-sm truncate">{{ student.name }}</p>
+                            <p class="text-[10px] font-bold text-red-400 uppercase tracking-widest">Score: {{ student.overall_score }}%</p>
+                        </div>
+                        <i class="ph-bold ph-arrow-right text-red-300 group-hover:text-red-500 transition-colors"></i>
+                    </a>
+                    {% empty %}
+                    <div class="text-center py-6 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                        <p class="text-slate-400 text-xs font-bold uppercase tracking-widest italic">No critical risks detected</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Bottom Section: Recent Interventions -->
+            <div>
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-bold flex items-center gap-2">
+                        <i class="ph-bold ph-heart-handshake text-indigo-500"></i>
+                        Support Progress
+                    </h3>
+                    <a href="{% url 'intervention_list' %}" class="text-sm font-bold text-indigo-600 hover:text-indigo-700">View All</a>
+                </div>
+                <div class="space-y-3">
+                    {% for intervention in interventions|slice:":3" %}
+                    <div class="flex items-center gap-4 p-3 rounded-xl bg-slate-50 hover:bg-indigo-50/50 transition-colors">
+                        <div class="w-9 h-9 rounded-xl flex-shrink-0 flex items-center justify-center
+                            {% if intervention.status == 'Completed' %}bg-emerald-100 text-emerald-600
+                            {% elif intervention.status == 'Ongoing' %}bg-amber-100 text-amber-600
+                            {% else %}bg-indigo-100 text-indigo-600{% endif %}">
+                            <i class="ph-bold ph-clipboard-text"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="font-bold text-slate-800 text-sm truncate">{{ intervention.student.name }}</p>
+                            <p class="text-[10px] font-medium text-slate-400">
+                                {{ intervention.get_intervention_type_display }}
+                                {% if intervention.manager != user %}
+                                    <span class="text-slate-300 mx-1">•</span> 
+                                    <span class="text-indigo-400">by {{ intervention.manager.name|default:intervention.manager.email }}</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        <span class="text-[10px] font-black uppercase px-2 py-1 rounded-lg
+                            {% if intervention.status == 'Completed' %}bg-emerald-100 text-emerald-700
+                            {% elif intervention.status == 'Ongoing' %}bg-amber-100 text-amber-700
+                            {% else %}bg-indigo-100 text-indigo-700{% endif %}">
+                            {{ intervention.status }}
+                        </span>
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-6 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                        <p class="text-slate-400 text-xs font-bold uppercase tracking-widest italic">No recent interventions</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const ctx = document.getElementById('riskChart').getContext('2d');
+    const chartData = {{ chart_data_json|safe }};
+    
+    let config;
+
+    if (chartData.type === 'bubble') {
+        const riskPoints = chartData.dataset.filter(p => p.is_risk);
+        const safePoints = chartData.dataset.filter(p => !p.is_risk);
+
+        config = {
+            type: 'bubble',
+            data: {
+                datasets: [
+                    {
+                        label: 'At-Risk Students',
+                        data: riskPoints,
+                        backgroundColor: 'rgba(239, 68, 68, 0.6)',
+                        borderColor: 'rgb(239, 68, 68)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Low-Risk Students',
+                        data: safePoints,
+                        backgroundColor: 'rgba(16, 185, 129, 0.6)',
+                        borderColor: 'rgb(16, 185, 129)',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        title: { display: true, text: 'Attendance (%)', font: { weight: 'bold', size: 10 } },
+                        min: 0,
+                        max: 100,
+                        grid: { color: '#f1f5f9' }
+                    },
+                    y: {
+                        title: { display: true, text: 'Overall Score (%)', font: { weight: 'bold', size: 10 } },
+                        min: 0,
+                        max: 100,
+                        grid: { color: '#f1f5f9' }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const p = context.raw;
+                                return `${p.name} (${p.id}): Att: ${p.x}%, Score: ${p.y}%`;
+                            }
+                        }
+                    },
+                    legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20, font: { weight: 'bold' } } }
+                }
+            }
+        };
+    } else {
+        // Admin Bar Chart
+        config = {
+            type: 'bar',
+            data: {
+                labels: chartData.labels,
+                datasets: [
+                    {
+                        label: 'High Risk',
+                        data: chartData.risk_data,
+                        backgroundColor: '#ef4444',
+                        borderRadius: 8,
+                    },
+                    {
+                        label: 'Low Risk',
+                        data: chartData.low_data,
+                        backgroundColor: '#10b981',
+                        borderRadius: 8,
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { stacked: true, grid: { display: false }, ticks: { font: { weight: 'bold' } } },
+                    y: { stacked: true, grid: { color: '#f1f5f9' }, ticks: { font: { weight: 'bold' } } }
+                },
+                plugins: {
+                    legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20, font: { weight: 'bold' } } }
+                }
+            }
+        };
+    }
+
+    new Chart(ctx, config);
+
+    {% if user.user_type == 'hod' %}
+    // HOD Secondary Chart: Support Workflow
+    const sCtx = document.getElementById('supportChart').getContext('2d');
+    const supportData = {{ support_chart_json|safe }};
+    
+    new Chart(sCtx, {
+        type: 'doughnut',
+        data: {
+            labels: supportData.status.labels,
+            datasets: [{
+                data: supportData.status.values,
+                backgroundColor: ['#6366f1', '#f59e0b', '#10b981'],
+                borderWidth: 0,
+                hoverOffset: 10
+            }]
+        },
+        options: {
+            maintainAspectRatio: false,
+            cutout: '70%',
+            plugins: {
+                legend: { position: 'bottom', labels: { usePointStyle: true, padding: 15, font: { size: 10, weight: 'bold' } } }
+            }
+        }
+    });
+    {% endif %}
+</script>
+{% endblock %}

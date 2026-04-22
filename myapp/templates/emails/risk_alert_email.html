@@ -1,0 +1,42 @@
+{% extends 'emails/base_email.html' %}
+
+{% block content %}
+<div class="badge badge-alert" style="margin-bottom: 16px;">Critical Alert</div>
+<h1 class="title">At-Risk Student Detected</h1>
+<p class="text">
+  Hello <strong>{{ hod_name }}</strong>,<br><br>
+  Our predictive system has identified a student in your department who is currently at high risk of academic difficulty. Immediate review and intervention are recommended.
+</p>
+
+<div class="data-card">
+  <div style="margin-bottom: 20px;">
+    <div style="font-size: 18px; font-weight: 800; color: #111827;">{{ student_name }}</div>
+    <div style="font-size: 13px; color: #6b7280; font-weight: 500;">ID: {{ student_id }} &bull; {{ department_name }}</div>
+  </div>
+  
+  <div class="data-row">
+    <span class="data-label">Overall Score</span>
+    <span class="data-value" style="color: #ef4444;">{{ overall_score }}%</span>
+  </div>
+  <div class="data-row">
+    <span class="data-label">Attendance</span>
+    <span class="data-value">{{ attendance }}%</span>
+  </div>
+  <div class="data-row">
+    <span class="data-label">Weekly Study</span>
+    <span class="data-value">{{ study_hours }} hrs</span>
+  </div>
+  <div class="data-row">
+    <span class="data-label">Predicted Grade</span>
+    <span class="data-value">{{ final_grade|default:"Pending"|upper }}</span>
+  </div>
+</div>
+
+<p class="text" style="font-size: 14px; background: #fefce8; padding: 16px; border-radius: 12px; border: 1px solid #fef08a; color: #854d0e;">
+  <strong>Action Required:</strong> Please review the student's full profile and consider scheduling a support session or tutoring.
+</p>
+
+<div class="button-container">
+  <a href="{{ dashboard_url }}" class="button">View Performance Dashboard</a>
+</div>
+{% endblock %}

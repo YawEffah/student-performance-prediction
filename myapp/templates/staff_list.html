@@ -1,0 +1,217 @@
+{% extends 'base.html' %}
+
+{% block title %}Staff Management | EduPredict{% endblock %}
+
+{% block content %}
+<header class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
+    <div>
+        <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Staff Management</h1>
+        <p class="text-slate-500 mt-1">Configure access and roles for departmental and system administrators.</p>
+    </div>
+    <button onclick="openStaffModal()" class="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-indigo-600 text-white font-black hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20">
+        <i class="ph-bold ph-user-plus"></i>
+        Register Staff
+    </button>
+</header>
+
+<div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full text-left">
+            <thead>
+                <tr class="bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] border-b border-slate-100">
+                    <th class="px-8 py-5">Personnel</th>
+                    <th class="px-8 py-5">Role & Department</th>
+                    <th class="px-8 py-5">Contact</th>
+                    <th class="px-8 py-5 text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-50">
+                {% for staff in staff_members %}
+                <tr class="group hover:bg-{% if staff.user_type == 'admin' %}amber{% else %}indigo{% endif %}-50/30 transition-colors">
+                    <td class="px-8 py-6">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-2xl {% if staff.user_type == 'admin' %}bg-amber-50 text-amber-600{% else %}bg-indigo-50 text-indigo-600{% endif %} flex items-center justify-center font-black text-lg shadow-inner">
+                                {{ staff.name|default:staff.email|slice:":1"|upper }}
+                            </div>
+                            <div>
+                                <p class="font-black text-slate-900">{{ staff.name|default:"—" }} {{ staff.familyname|default:"" }}</p>
+                                <p class="text-xs text-slate-400 font-medium">{{ staff.email }}</p>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-8 py-6">
+                        <div class="flex flex-col gap-1">
+                            {% if staff.user_type == 'admin' %}
+                            <span class="inline-flex items-center w-fit px-2.5 py-1 rounded-lg bg-amber-100 text-amber-700 text-[9px] font-black uppercase tracking-wider">
+                                <i class="ph-bold ph-shield-check mr-1.5"></i> System Admin
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center w-fit px-2.5 py-1 rounded-lg bg-indigo-100 text-indigo-700 text-[9px] font-black uppercase tracking-wider">
+                                <i class="ph-bold ph-building mr-1.5"></i> H.O.D
+                            </span>
+                            {% endif %}
+                            <span class="text-[10px] font-bold text-slate-400 uppercase ml-1">
+                                {% if staff.department %}{{ staff.department.name }}{% else %}Global Access{% endif %}
+                            </span>
+                        </div>
+                    </td>
+                    <td class="px-8 py-6 font-medium text-slate-500 text-sm">{{ staff.phone|default:"—" }}</td>
+                    <td class="px-8 py-6 text-right">
+                        <div class="flex justify-end gap-2">
+                            <a href="{% url 'ads_staff_update' staff.id %}" class="p-2 rounded-xl bg-slate-50 text-slate-400 hover:bg-indigo-600 hover:text-white transition-all shadow-sm">
+                                <i class="ph-bold ph-pencil-simple-line text-lg"></i>
+                            </a>
+                            <button onclick="deleteStaff({{ staff.id }}, '{{ staff.name|default:staff.email }}')" class="p-2 rounded-xl bg-slate-50 text-slate-400 hover:bg-red-500 hover:text-white transition-all shadow-sm">
+                                <i class="ph-bold ph-trash text-lg"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" class="px-8 py-20 text-center text-slate-400 italic font-medium">No staff members registered yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Template -->
+<template id="staffModalTemplate">
+    <div class="mb-8 text-center">
+        <h2 class="text-2xl font-black text-slate-900 tracking-tight">Register New Staff</h2>
+        <p class="text-slate-500 text-sm mt-1">Grant administrative or departmental access.</p>
+    </div>
+    
+    <!-- Role Switcher -->
+    <div class="flex p-1.5 bg-slate-50 rounded-2xl mb-8 border border-slate-100">
+        <button type="button" onclick="switchRole('hod')" id="btn-role-hod" class="flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all bg-indigo-600 text-white shadow-lg shadow-indigo-600/20">
+            Head of Department
+        </button>
+        <button type="button" onclick="switchRole('admin')" id="btn-role-admin" class="flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all text-slate-500 hover:text-slate-700">
+            System Admin
+        </button>
+    </div>
+
+    <form method="POST" action="{% url 'staff_list' %}" id="staffForm" class="space-y-8">
+        {% csrf_token %}
+        <input type="hidden" name="user_type" id="id_user_type" value="hod">
+        
+        <div class="space-y-8">
+            <!-- Auth Fields -->
+            <div class="space-y-4">
+                <h4 class="text-[10px] font-black text-indigo-500 uppercase tracking-widest border-b border-indigo-50 pb-2">Auth Credentials</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {% for field in user_form %}
+                        {% if field.name != 'user_type' %}
+                        <div class="flex flex-col gap-1">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] ml-1">{{ field.label }}</label>
+                            {{ field }}
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Profile Section -->
+            <div class="space-y-4">
+                <h4 id="profile-heading" class="text-[10px] font-black text-indigo-500 uppercase tracking-widest border-b border-indigo-50 pb-2">Staff Profile</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {% for field in profile_form %}
+                    <div class="flex flex-col gap-1 {% if field.name == 'familyname' or field.name == 'hiredate' %}admin-only-field hidden{% endif %}">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] ml-1">{{ field.label }}</label>
+                        {{ field }}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="pt-6 flex gap-4">
+            <button type="submit" id="submit-btn" class="flex-1 bg-indigo-600 text-white py-4 rounded-2xl font-black hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20">Initialize Account</button>
+            <button type="button" onclick="closeModal()" class="flex-1 bg-slate-50 text-slate-500 py-4 rounded-2xl font-bold hover:bg-slate-100 transition-all">Cancel</button>
+        </div>
+    </form>
+</template>
+
+<style>
+    input[type="text"], input[type="number"], input[type="email"], input[type="password"], select, textarea, input[type="date"] {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border-radius: 1rem;
+        border: 1px solid #e2e8f0;
+        background: #f8fafc;
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+    input:focus, select:focus, textarea:focus {
+        outline: none;
+        border-color: #6366f1;
+        background: #ffffff;
+        box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function openStaffModal() {
+        const template = document.getElementById('staffModalTemplate');
+        openModal(template.innerHTML);
+        switchRole('hod');
+    }
+
+    function switchRole(role) {
+        const userTypeInput = document.getElementById('id_user_type');
+        const btnHOD = document.getElementById('btn-role-hod');
+        const btnAdmin = document.getElementById('btn-role-admin');
+        const submitBtn = document.getElementById('submit-btn');
+        const profileHeading = document.getElementById('profile-heading');
+        const adminFields = document.querySelectorAll('.admin-only-field');
+
+        userTypeInput.value = role;
+
+        if (role === 'hod') {
+            adminFields.forEach(el => el.classList.add('hidden'));
+            profileHeading.textContent = 'HOD Profile';
+            profileHeading.className = "text-[10px] font-black text-indigo-500 uppercase tracking-widest border-b border-indigo-50 pb-2";
+            
+            btnHOD.className = "flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all bg-indigo-600 text-white shadow-lg shadow-indigo-600/20";
+            btnAdmin.className = "flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all text-slate-500 hover:text-slate-700";
+            submitBtn.className = "flex-1 bg-indigo-600 text-white py-4 rounded-2xl font-black hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20";
+        } else {
+            adminFields.forEach(el => el.classList.remove('hidden'));
+            profileHeading.textContent = 'Admin Profile';
+            profileHeading.className = "text-[10px] font-black text-amber-500 uppercase tracking-widest border-b border-amber-50 pb-2";
+            
+            btnAdmin.className = "flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all bg-amber-600 text-white shadow-lg shadow-amber-600/20";
+            btnHOD.className = "flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all text-slate-500 hover:text-slate-700";
+            submitBtn.className = "flex-1 bg-amber-600 text-white py-4 rounded-2xl font-black hover:bg-amber-700 transition-all shadow-lg shadow-amber-600/20";
+        }
+    }
+
+    function deleteStaff(id, name) {
+        confirmAction({
+            title: 'Remove Staff Member',
+            message: `Are you sure you want to permanently remove ${name}? This will revoke all system access.`,
+            icon: 'ph-user-minus',
+            color: 'red',
+            okText: 'Revoke Access',
+            onConfirm: () => {
+                fetch(`/ads/staff/delete/${id}/`, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.message) {
+                        showAlert("Staff Removed", data.message);
+                        setTimeout(() => location.reload(), 1500);
+                    } else {
+                        showAlert("Error", data.error, "error");
+                    }
+                });
+            }
+        });
+    }
+</script>
+{% endblock %}
